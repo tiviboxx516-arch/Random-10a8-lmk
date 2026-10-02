@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vòng Quay</title>
+    
+    <!-- Các thư viện cần thiết -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Thư viện tạo âm thanh Tone.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap');
+        
+        :root {
+            --sidebar-bg: #e6f7f5; /* Màu nền sidebar giống ảnh */
+            --sidebar-text: #2d5a52;
+            --main-bg: #f3f8f7;
+            --accent-color: #159b84; /* Màu xanh lá/ngọc bích */
+            --border-color: #c7ede0;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            overflow: hidden;
+            background-color: var(--main-bg);
+            color: #334155;
+        }
+
+        /* Tùy chỉnh thanh cuộn cho sidebar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #b4e0d4; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #96caba; }
+
+        .sidebar {
+            background-color: var(--sidebar-bg);
+            border-right: 2px solid var(--border-color);
+        }
+
+        .section-title {
+            font-size: 0.85rem;
+            font-weight: 800;
+            color: #475569;
+            margin-bottom: 0.75rem;
+        }
+
+        /* Lưới nút kiểu bay */
+        .option-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+        }
+
+        .option-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 0.75rem;
+            border-radius: 0.5rem;
+            border: 1px solid white;
+            background-color: white;
+            color: #475569;
+            font-weight: 700;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        
+        .option-btn i {
+            color: #4ade80;
+            font-size: 1rem;
+            width: 1.25rem;
+            text-align: center;
+        }
+
+        .option-btn:hover {
+            border-color: var(--accent-color);
+            transform: translateY(-1px);
+        }
+
+        .option-btn.active {
+            background-color: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+        
+        .option-btn.active i { color: white; }
+
+        /* Lưới nền sân khấu */
+        .theme-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+        }
+
+        .theme-btn {
+            height: 2.5rem;
+            border-radius: 0.5rem;
+            border: 2px solid transparent;
+            transition: transform 0.2s, border-color 0.2s;
+            position: relative;
+            cursor: pointer;
+            overflow: hidden;
+        }
+        
+        .theme-btn.active {
+            border-color: #f59e0b;
+            transform: scale(1.05);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        
+        .theme-btn span {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 0.7rem;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+
+        /* Các màu nền */
+        .bg-macdinh { background-color: #f3f8f7; border: 1px solid #cbd5e1; }
+        .bg-macdinh span { color: #475569; text-shadow: none; }
+        .bg-cucquang { background: linear-gradient(135deg, #ec4899, #8b5cf6); }
+        .bg-xoaytim { background: linear-gradient(135deg, #3b82f6, #6366f1); }
+        .bg-luadem { background: linear-gradient(135deg, #1e293b, #000000); }
+        .bg-songtim { background: linear-gradient(135deg, #a855f7, #ec4899); }
+        .bg-daiduong { background: linear-gradient(135deg, #0f766e, #06b6d4); }
+        .bg-vutru { background: linear-gradient(135deg, #2e1065, #4c1d95); }
+
+        .stage-theme-macdinh { background-color: #f3f8f7; }
+        .stage-theme-cucquang { background: linear-gradient(135deg, #ec4899, #8b5cf6); }
+        .stage-theme-xoaytim { background: linear-gradient(135deg, #3b82f6, #6366f1); }
+        .stage-theme-luadem { background: linear-gradient(135deg, #1e293b, #000000); }
+        .stage-theme-songtim { background: linear-gradient(135deg, #a855f7, #ec4899); }
+        .stage-theme-daiduong { background: linear-gradient(135deg, #0f766e, #06b6d4); }
+        .stage-theme-vutru { background: linear-gradient(135deg, #2e1065, #4c1d95); }
+
+        .student-card {
+            position: absolute;
+            width: 120px;
+            height: 140px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            transition: left 2s ease-in-out, top 2s ease-in-out, transform 0.3s;
+            user-select: none;
+            border: 1px solid #e2e8f0;
+        }
+
+        .avatar-wrapper {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+            border: 2px solid transparent;
+            padding: 2px;
+        }
+        
+        .avatar-inner {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .student-name {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #334155;
+            text-align: center;
+            width: 100%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Hiệu ứng nổi bật khi đang quét / dò tìm */
+        .highlight-scan {
+            border-color: #f59e0b !important;
+            box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.3), 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+            transform: scale(1.15) !important;
+            z-index: 50 !important;
+            transition: all 0.1s !important;
+        }
+    </style>
+</head>
+
+<body class="flex flex-col md:flex-row w-full h-screen overflow-hidden">
+
+    <aside class="sidebar w-full md:w-[320px] flex flex-col z-20 shadow-[2px_0_10px_rgba(0,0,0,0.05)] shrink-0 h-1/3 md:h-full relative overflow-y-auto">
+        
+        <div class="p-5 flex-grow flex flex-col gap-5">
+            
+            <!-- Nhóm Kiểu bay -->
+            <div>
+                <h2 class="section-title">Kiểu bay</h2>
+                <div class="option-grid">
+                    <button class="option-btn active" onclick="setFlightPattern('chaos', this)">
+                        <i class="fas fa-random text-[#159b84]"></i> Hỗn loạn
+                    </button>
+                    <button class="option-btn" onclick="setFlightPattern('spiral', this)">
+                        <i class="fas fa-hurricane text-[#159b84]"></i> Trôn ốc
+                    </button>
+                    <button class="option-btn" onclick="setFlightPattern('fire', this)">
+                        <i class="fas fa-fire text-[#159b84]"></i> Đốt lửa
+                    </button>
+                    <button class="option-btn" onclick="setFlightPattern('wave', this)">
+                        <i class="fas fa-water text-[#159b84]"></i> Sóng
+                    </button>
+                    <button class="option-btn" onclick="setFlightPattern('planet', this)">
+                        <i class="fas fa-globe text-[#159b84]"></i> Hành tinh
+                    </button>
+                    <button class="option-btn" onclick="setFlightPattern('figure8', this)">
+                        <i class="fas fa-infinity text-[#159b84]"></i> Số 8
+                    </button>
+                    <button class="option-btn" onclick="setFlightPattern('pendulum', this)">
+                        <i class="fas fa-clock text-[#159b84]"></i> Con lắc
+                    </button>
+                    <button class="option-btn" onclick="setFlightPattern('bubble', this)">
+                        <i class="fas fa-circle-notch text-[#159b84]"></i> Bong bóng
+                    </button>
+                    <button class="option-btn" onclick="setFlightPattern('heart', this)">
+                        <i class="fas fa-heart text-[#159b84]"></i> Trái tim
+                    </button>
+                    <button class="option-btn" onclick="setFlightPattern('zigzag', this)">
+                        <i class="fas fa-bolt text-[#159b84]"></i> Zigzag
+                    </button>
+                </div>
+            </div>
+
+            <!-- Nhóm Nền sân khấu -->
+            <div>
+                <h2 class="section-title">Nền sân khấu</h2>
+                <div class="theme-grid">
+                    <div class="theme-btn bg-macdinh active" onclick="setTheme('stage-theme-macdinh', this)">
+                        <span>Mặc định</span>
+                    </div>
+                    <div class="theme-btn bg-cucquang" onclick="setTheme('stage-theme-cucquang', this)">
+                        <span>Cực quang</span>
+                    </div>
+                    <div class="theme-btn bg-xoaytim" onclick="setTheme('stage-theme-xoaytim', this)">
+                        <span>Xoáy tím</span>
+                    </div>
+                    <div class="theme-btn bg-luadem" onclick="setTheme('stage-theme-luadem', this)">
+                        <span>Lửa đêm</span>
+                    </div>
+                    <div class="theme-btn bg-songtim" onclick="setTheme('stage-theme-songtim', this)">
+                        <span>Sóng tím</span>
+                    </div>
+                    <div class="theme-btn bg-daiduong" onclick="setTheme('stage-theme-daiduong', this)">
+                        <span>Đại dương</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-3 mt-2">
+                <div class="flex justify-between items-center bg-white p-3 rounded-lg shadow-sm">
+                    <label class="text-sm font-bold text-slate-600">Thời gian gọi (giây):</label>
+                    <div class="flex items-center gap-2">
+                        <input type="range" id="time-slider" min="1" max="10" value="3" class="w-16 accent-[var(--accent-color)]" oninput="document.getElementById('time-display').innerText = this.value">
+                        <span id="time-display" class="text-sm font-bold text-slate-800 w-4">3</span>
+                    </div>
+                </div>
+
+                <div class="flex gap-2">
+                    <button onclick="toggleSetupModal()" class="flex-1 py-2 rounded-lg bg-white border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 shadow-sm">
+                        <i class="fas fa-edit mr-1"></i> Sửa DS
+                    </button>
+                    <button onclick="resetList()" class="flex-1 py-2 rounded-lg bg-white border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 shadow-sm">
+                        <i class="fas fa-undo mr-1"></i> Đặt lại
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-4 bg-white/80 border-t border-[var(--border-color)] sticky bottom-0 backdrop-blur-sm">
+            <button id="start-btn" onclick="startCalling()" class="w-full py-3.5 rounded-xl bg-[var(--accent-color)] hover:bg-[#11826e] text-white font-bold text-lg shadow-md transition-all flex items-center justify-center gap-2">
+                <i class="fas fa-play"></i> BẮT ĐẦU GỌI
+            </button>
+            <div class="text-center mt-2">
+                 <span class="text-xs font-semibold text-slate-500">Đang có mặt: </span>
+                 <span id="student-count-badge" class="font-bold text-xs text-[var(--accent-color)]">0</span>
+            </div>
+        </div>
+    </aside>
+
+    <main class="flex-grow relative stage-theme-macdinh transition-colors duration-500" id="main-stage">
+        <div id="nodes-container" class="absolute inset-0 z-0"></div>
+    </main>
+
+    <!-- Modal sửa danh sách -->
+    <div id="setup-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[200] hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl flex flex-col gap-4">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h2 class="text-lg font-bold text-slate-800">Danh sách học sinh</h2>
+                <button onclick="toggleSetupModal()" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
+            </div>
+            <textarea id="student-list" rows="8" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm text-slate-700 focus:outline-none focus:border-[var(--accent-color)] resize-none"></textarea>
+            <div class="flex gap-3">
+                <button onclick="toggleSetupModal()" class="flex-1 py-2 bg-slate-100 text-slate-600 rounded-lg font-bold">Hủy</button>
+                <button onclick="applyNameList()" class="flex-1 py-2 bg-[var(--accent-color)] text-white rounded-lg font-bold">Lưu danh sách</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal vinh danh người chọn -->
+    <div id="winner-modal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] hidden flex-col items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center transform scale-95 opacity-0 transition-all duration-300" id="winner-card">
+            <h2 class="text-[#159b84] text-sm font-black tracking-widest uppercase mb-4">🎉 Bạn được chọn là 🎉</h2>
+            <div class="relative w-28 h-28 mx-auto mb-4">
+                <div class="absolute inset-0 bg-yellow-300 rounded-full animate-ping opacity-30"></div>
+                <div class="relative w-full h-full bg-white border-4 border-yellow-400 shadow-lg rounded-full flex items-center justify-center overflow-hidden p-1" id="winner-avatar">
+                </div>
+            </div>
+            <h3 class="text-2xl font-extrabold text-slate-800 mb-6" id="winner-name">Đang tải...</h3>
+            <div class="flex flex-col gap-2">
+                <button onclick="closeModal(false)" class="w-full py-3 rounded-xl bg-slate-100 text-slate-700 font-bold text-sm hover:bg-slate-200">
+                    Giữ lại trong danh sách
+                </button>
+                <button onclick="closeModal(true)" class="w-full py-3 rounded-xl bg-rose-500 text-white font-bold text-sm hover:bg-rose-600">
+                    Xóa khỏi danh sách
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Danh sách mẫu
+        const defaultNames = "Hoàng Ngọc Hà\nVũ Gia Hân\nĐỗ Minh Khang\nBùi Khánh Linh\nNguyễn Nhật Nam\nTrần Bảo Ngọc\nPhạm Quỳnh Anh\nLê Đức Phúc";
+        
+        let allStudents = [];
+        let availableStudents = [];
+        let nodeElements = [];
+        let isCalling = false;
+        let currentFlightPattern = 'chaos';
+        let timeElapsed = 0;
+        let chaosInterval = null;
+
+        const nodesContainer = document.getElementById('nodes-container');
+        const mainStage = document.getElementById('main-stage');
+        
+        // Cài đặt Tone.js Audio
+        let audioSetupDone = false;
+        let tickSynth;
+        let winSynth;
+
+        function initAudio() {
+            if (audioSetupDone) return;
+            // Synth phát tiếng "tít" ngắn gọn
+            tickSynth = new Tone.Synth({
+                oscillator: { type: "square" },
+                envelope: { attack: 0.01, decay: 0.05, sustain: 0, release: 0.05 }
+            }).toDestination();
+            tickSynth.volume.value = -12; // Giảm âm lượng
+
+            // Synth phát tiếng hợp âm chúc mừng
+            winSynth = new Tone.PolySynth(Tone.Synth, {
+                oscillator: { type: "triangle" },
+                envelope: { attack: 0.05, decay: 0.2, sustain: 0.5, release: 1.5 }
+            }).toDestination();
+            winSynth.volume.value = -5;
+            
+            audioSetupDone = true;
+        }
+
+        function playTickSound() {
+            if (audioSetupDone) {
+                tickSynth.triggerAttackRelease("E5", "32n");
+            }
+        }
+
+        function playWinSound() {
+            if (audioSetupDone) {
+                const now = Tone.now();
+                // Chơi hợp âm Đô trưởng (C Major)
+                winSynth.triggerAttackRelease(["C4", "E4", "G4", "C5"], "2n", now);
+            }
+        }
+
+        // Tạo Avatar ngẫu nhiên theo hình vẽ
+        function generateAvatarSVG(name) {
+            const colors = ['#c4b5fd', '#bae6fd', '#fecdd3', '#bbf7d0', '#fde68a', '#99f6e4'];
+            const shirtColors = ['#8b5cf6', '#0ea5e9', '#e11d48', '#16a34a', '#d97706', '#0d9488'];
+            const borderColors = ['#8b5cf6', '#0ea5e9', '#e11d48', '#16a34a', '#d97706', '#0d9488'];
+            
+            let hash = 0;
+            for(let i=0; i<name.length; i++) hash += name.charCodeAt(i);
+            
+            const idx = hash % colors.length;
+            const bgColor = colors[idx];
+            const shirtColor = shirtColors[(hash + 1) % shirtColors.length];
+            const bColor = borderColors[idx];
+            
+            const skinColor = '#fcd34d'; // Màu da vàng như ảnh
+            const hasGlasses = hash % 2 === 0;
+
+            return {
+                borderColor: bColor,
+                html: `
+                <svg viewBox="0 0 100 100" width="100%" height="100%" style="background-color:${bgColor}">
+                    <path d="M 20 100 C 20 65, 80 65, 80 100 Z" fill="${shirtColor}"/>
+                    <circle cx="50" cy="45" r="28" fill="${skinColor}"/>
+                    <!-- Tóc đơn giản -->
+                    <path d="M 22 45 C 22 10, 78 10, 78 45 C 78 30, 22 30, 22 45" fill="#1e293b"/>
+                    <!-- Mắt -->
+                    <circle cx="38" cy="40" r="3.5" fill="#1e293b"/>
+                    <circle cx="62" cy="40" r="3.5" fill="#1e293b"/>
+                    <!-- Miệng -->
+                    <path d="M 40 55 Q 50 62 60 55" stroke="#1e293b" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+                    <!-- Kính -->
+                    ${hasGlasses ? `
+                        <circle cx="38" cy="40" r="10" stroke="#475569" stroke-width="2" fill="none"/>
+                        <circle cx="62" cy="40" r="10" stroke="#475569" stroke-width="2" fill="none"/>
+                        <line x1="48" y1="40" x2="52" y2="40" stroke="#475569" stroke-width="2"/>
+                    ` : ''}
+                </svg>`
+            };
+        }
+
+        function toggleSetupModal() {
+            const modal = document.getElementById('setup-modal');
+            if (modal.classList.contains('hidden')) {
+                document.getElementById('student-list').value = allStudents.join('\n');
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            } else {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        }
+
+        function resetList() {
+            if(confirm("Khôi phục danh sách ban đầu?")) {
+                document.getElementById('student-list').value = defaultNames;
+                parseAndApplyList();
+            }
+        }
+
+        function applyNameList() {
+            parseAndApplyList();
+            toggleSetupModal();
+        }
+
+        function parseAndApplyList() {
+            const rawText = document.getElementById('student-list').value;
+            allStudents = rawText.split('\n').map(n => n.trim()).filter(n => n.length > 0);
+            
+            if (allStudents.length === 0) return alert("Vui lòng nhập ít nhất 1 tên học sinh.");
+
+            availableStudents = [...allStudents];
+            document.getElementById('student-count-badge').innerText = `${availableStudents.length} / ${allStudents.length}`;
+            renderNodes();
+        }
+
+        function renderNodes() {
+            nodesContainer.innerHTML = '';
+            nodeElements = [];
+
+            availableStudents.forEach((name) => {
+                const node = document.createElement('div');
+                node.className = 'student-card';
+                
+                const avt = generateAvatarSVG(name);
+                node.innerHTML = `
+                    <div class="avatar-wrapper" style="border-color: ${avt.borderColor}">
+                        <div class="avatar-inner">${avt.html}</div>
+                    </div>
+                    <div class="student-name" title="${name}">${name}</div>
+                `;
+                
+                // Đặt vị trí ban đầu ngẫu nhiên
+                node.style.left = Math.random() * (mainStage.clientWidth - 140) + 'px';
+                node.style.top = Math.random() * (mainStage.clientHeight - 160) + 'px';
+                
+                nodesContainer.appendChild(node);
+                nodeElements.push({ el: node, name: name });
+            });
+
+            moveAllNodes(); 
+        }
+
+        function setFlightPattern(pattern, btn) {
+            currentFlightPattern = pattern;
+            document.querySelectorAll('.option-btn').forEach(b => {
+                b.classList.remove('active');
+                const icon = b.querySelector('i');
+                if(icon) icon.className = icon.className.replace('text-white', 'text-[#159b84]');
+            });
+            btn.classList.add('active');
+            const btnIcon = btn.querySelector('i');
+            if(btnIcon) btnIcon.className = btnIcon.className.replace('text-[#159b84]', 'text-white');
+            
+            if(pattern !== 'chaos' && chaosInterval) {
+                clearInterval(chaosInterval); chaosInterval = null;
+            } else if (pattern === 'chaos' && !chaosInterval) {
+                startChaosInterval();
+            }
+            moveAllNodes();
+        }
+
+        function setTheme(themeClass, btn) {
+            mainStage.className = `flex-grow relative transition-colors duration-500 ${themeClass}`;
+            document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        function calculatePos(index, total, time) {
+            const w = mainStage.clientWidth, h = mainStage.clientHeight;
+            const cx = w / 2 - 60, cy = h / 2 - 70;
+            let x = cx, y = cy;
+
+            // Tính toán quỹ đạo dựa trên kiểu bay
+            switch (currentFlightPattern) {
+                case 'spiral':
+                    const angS = index * 0.8 + time * 0.0005;
+                    const radS = 50 + index * 10;
+                    x = cx + Math.cos(angS) * radS; y = cy + Math.sin(angS) * radS; break;
+                case 'wave':
+                    x = (w / (total + 1)) * (index + 1) - 60;
+                    y = cy + Math.sin(x * 0.01 + time * 0.002) * 120; break;
+                case 'planet':
+                    const angP = (index / total) * Math.PI * 2 + time * 0.001;
+                    x = cx + Math.cos(angP) * (w*0.35); y = cy + Math.sin(angP) * (h*0.35); break;
+                case 'heart':
+                    const t = (index / total) * Math.PI * 2 + time * 0.001;
+                    const sc = Math.min(w, h) * 0.015; 
+                    x = cx + (16 * Math.pow(Math.sin(t), 3)) * sc;
+                    y = cy - (13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t)) * sc; break;
+                case 'zigzag':
+                    x = (w / 6) * (index % 5 + 1) - 60 + Math.sin(time*0.002 + Math.floor(index/5))*40;
+                    y = h/4 + Math.floor(index / 5) * 100; break;
+                case 'fire':
+                    const fA = index + time * 0.002;
+                    x = cx + Math.cos(fA) * (Math.random() * 40 + 40);
+                    y = cy + Math.sin(fA) * 150 - (time%2000)/10;
+                    if(y < -140) y = h; break;
+                case 'figure8':
+                    const t8 = (index / total) * Math.PI * 2 + time * 0.001;
+                    const a = w * 0.25;
+                    const denom = Math.pow(Math.sin(t8), 2) + 1;
+                    x = cx + (a * Math.SQRT2 * Math.cos(t8)) / denom;
+                    y = cy + (a * Math.SQRT2 * Math.cos(t8) * Math.sin(t8)) / denom; break;
+                case 'pendulum':
+                    const pA = Math.sin(time * 0.002 + index*0.5) * Math.PI/3;
+                    x = cx + Math.sin(pA) * (h*0.5); y = 50 + Math.cos(pA) * (h*0.5); break;
+                case 'bubble':
+                    x = cx + Math.sin(time*0.001 + index) * (w/3);
+                    y = cy + Math.cos(time*0.0013 + index*2) * (h/3); break;
+            }
+            
+            // Giữ trong màn hình
+            return { x: Math.max(10, Math.min(x, w - 130)), y: Math.max(10, Math.min(y, h - 150)) };
+        }
+
+        function animationLoop(timestamp) {
+            timeElapsed = timestamp;
+            if (!isCalling && currentFlightPattern !== 'chaos') {
+                nodeElements.forEach((item, index) => {
+                    const pos = calculatePos(index, nodeElements.length, timeElapsed);
+                    item.el.style.transition = 'none'; 
+                    item.el.style.left = `${pos.x}px`;
+                    item.el.style.top = `${pos.y}px`;
+                });
+            }
+            requestAnimationFrame(animationLoop);
+        }
+
+        function moveAllNodes() {
+            if (currentFlightPattern === 'chaos') {
+                const w = mainStage.clientWidth - 130, h = mainStage.clientHeight - 150;
+                nodeElements.forEach(item => {
+                    if (!item.el.classList.contains('highlight-scan')) {
+                        item.el.style.transition = 'left 2s ease-in-out, top 2s ease-in-out, transform 0.3s';
+                        item.el.style.left = Math.max(10, Math.random() * w) + 'px';
+                        item.el.style.top = Math.max(10, Math.random() * h) + 'px';
+                    }
+                });
+            }
+        }
+
+        function startChaosInterval() {
+            if(chaosInterval) clearInterval(chaosInterval);
+            chaosInterval = setInterval(() => { if(!isCalling && currentFlightPattern === 'chaos') moveAllNodes(); }, 2000);
+        }
+
+        async function startCalling() {
+            if (availableStudents.length === 0) return alert("Đã hết học sinh!");
+            
+            // Khởi động Audio Context của trình duyệt
+            await Tone.start();
+            initAudio();
+
+            isCalling = true;
+            const btn = document.getElementById('start-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ĐANG TÌM...';
+            btn.classList.replace('bg-[var(--accent-color)]', 'bg-slate-400');
+
+            const scanTime = (parseInt(document.getElementById('time-slider').value) || 3) * 1000;
+            let lastNode = null;
+            
+            // Nhấp nháy và phát tiếng tít
+            const scanInterval = setInterval(() => {
+                if (lastNode) lastNode.classList.remove('highlight-scan');
+                
+                const rand = nodeElements[Math.floor(Math.random() * nodeElements.length)].el;
+                rand.classList.add('highlight-scan');
+                lastNode = rand;
+                
+                playTickSound(); // Phát âm thanh
+            }, 120);
+
+            // Công bố
+            setTimeout(() => {
+                clearInterval(scanInterval);
+                if (lastNode) lastNode.classList.remove('highlight-scan');
+
+                const winName = availableStudents[Math.floor(Math.random() * availableStudents.length)];
+                announceWinner(winName);
+                window.currentWinner = winName;
+            }, scanTime);
+        }
+
+        function announceWinner(name) {
+            playWinSound(); // Tiếng Tadaa
+            confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+
+            const avt = generateAvatarSVG(name);
+            document.getElementById('winner-name').innerText = name;
+            const avtBox = document.getElementById('winner-avatar');
+            avtBox.innerHTML = avt.html;
+            avtBox.style.borderColor = avt.borderColor;
+            
+            const modal = document.getElementById('winner-modal');
+            const card = document.getElementById('winner-card');
+            
+            modal.classList.remove('hidden'); modal.classList.add('flex');
+            setTimeout(() => { card.classList.remove('scale-95', 'opacity-0'); }, 50);
+        }
+
+        function closeModal(removeWinner) {
+            if (removeWinner && window.currentWinner) {
+                availableStudents = availableStudents.filter(n => n !== window.currentWinner);
+            }
+            
+            document.getElementById('winner-card').classList.add('scale-95', 'opacity-0');
+            
+            setTimeout(() => {
+                document.getElementById('winner-modal').classList.add('hidden');
+                document.getElementById('winner-modal').classList.remove('flex');
+                
+                isCalling = false;
+                const btn = document.getElementById('start-btn');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-play"></i> BẮT ĐẦU GỌI';
+                btn.classList.replace('bg-slate-400', 'bg-[var(--accent-color)]');
+                
+                document.getElementById('student-count-badge').innerText = `${availableStudents.length} / ${allStudents.length}`;
+                renderNodes();
+            }, 300);
+        }
+
+        window.onload = () => {
+            document.getElementById('student-list').value = defaultNames;
+            parseAndApplyList();
+            window.addEventListener('resize', () => { if(!isCalling) moveAllNodes(); });
+            startChaosInterval();
+            requestAnimationFrame(animationLoop);
+        };
+    </script>
+</body>
+</html>
